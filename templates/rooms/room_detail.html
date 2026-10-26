@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Room {{ room.room_number }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Room {{ room.room_number }}</h1>
+  {% if user.is_staff %}<a class="btn btn-outline-primary btn-sm" href="{% url 'rooms:update' room.pk %}">Edit room</a>{% endif %}
+</div>
+<dl class="card card-body bg-white">
+  <dt>Hostel</dt><dd>{{ room.hostel.name }} ({{ room.hostel.code }})</dd>
+  <dt>Floor</dt><dd>{{ room.floor }}</dd>
+  <dt>Capacity</dt><dd>{{ room.capacity }}</dd>
+  <dt>Available beds</dt><dd>{{ room.available_capacity }}</dd>
+  <dt>Status</dt><dd>{{ room.availability_status }}</dd>
+</dl>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Rooms{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Room availability</h1>
+  {% if user.is_staff %}<a class="btn btn-primary" href="{% url 'rooms:create' %}">Add room</a>{% endif %}
+</div>
+<form method="get" class="row g-2 mb-3 bg-white card card-body">
+  <div class="col-md-4">
+    <label class="form-label" for="hostel">Hostel</label>
+    <select class="form-select" name="hostel" id="hostel">
+      <option value="">All hostels</option>
+      {% for h in hostels %}
+        <option value="{{ h.pk }}" {% if selected.hostel == h.pk|stringformat:"s" %}selected{% endif %}>{{ h.name }} ({{ h.code }})</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label" for="floor">Floor</label>
+    <input class="form-control" type="number" name="floor" id="floor" value="{{ selected.floor }}">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label" for="status">Status</label>
+    <select class="form-select" name="status" id="status">
+      <option value="">Any</option>
+      <option value="available" {% if selected.status == 'available' %}selected{% endif %}>Available</option>
+      <option value="partial" {% if selected.status == 'partial' %}selected{% endif %}>Partially Occupied</option>
+      <option value="full" {% if selected.status == 'full' %}selected{% endif %}>Full</option>
+    </select>
+  </div>
+  <div class="col-md-2 align-self-end">
+    <button class="btn btn-secondary w-100" type="submit">Filter</button>
+  </div>
+</form>
+<table class="table table-striped bg-white">
+  <thead><tr><th>Hostel</th><th>Room</th><th>Floor</th><th>Capacity</th><th>Available beds</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for room in rooms %}
+    <tr>
+      <td>{{ room.hostel.name }}</td>
+      <td>{{ room.room_number }}</td>
+      <td>{{ room.floor }}</td>
+      <td>{{ room.capacity }}</td>
+      <td>{{ room.available_capacity }}</td>
+      <td>{{ room.availability_status }}</td>
+      <td><a href="{% url 'rooms:detail' room.pk %}">View</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7">No rooms match these filters.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}{{ hostel.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">{{ hostel.name }} <small class="text-muted">({{ hostel.code }})</small></h1>
+  <a class="btn btn-outline-primary btn-sm" href="{% url 'hostels:update' hostel.pk %}">Edit hostel</a>
+</div>
+<dl class="card card-body bg-white mb-4">
+  <dt>Total capacity</dt><dd>{{ hostel.total_capacity }}</dd>
+  <dt>Address</dt><dd>{{ hostel.address|default:"-" }}</dd>
+  <dt>Notes</dt><dd>{{ hostel.notes|default:"-" }}</dd>
+</dl>
+<h2 class="h5">Rooms</h2>
+<table class="table table-sm bg-white">
+  <thead><tr><th>Room</th><th>Floor</th><th>Capacity</th><th></th></tr></thead>
+  <tbody>
+  {% for room in rooms %}
+    <tr>
+      <td>{{ room.room_number }}</td><td>{{ room.floor }}</td><td>{{ room.capacity }}</td>
+      <td><a href="{% url 'rooms:detail' room.pk %}">View</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">No rooms in this hostel yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

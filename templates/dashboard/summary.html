@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Administrative summary</h1>
+<div class="row g-3">
+  <div class="col-md-4"><div class="card card-body bg-white"><div class="text-muted small">Total students registered</div><div class="h3">{{ stats.students }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body bg-white"><div class="text-muted small">Total hostels</div><div class="h3">{{ stats.hostels }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body bg-white"><div class="text-muted small">Total rooms</div><div class="h3">{{ stats.rooms }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body bg-white"><div class="text-muted small">Total capacity (beds)</div><div class="h3">{{ stats.total_capacity }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body bg-white"><div class="text-muted small">Current occupancy</div><div class="h3">{{ stats.occupancy }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body bg-white"><div class="text-muted small">Available capacity</div><div class="h3">{{ stats.available }}</div></div></div>
+</div>
+{% endblock %}
