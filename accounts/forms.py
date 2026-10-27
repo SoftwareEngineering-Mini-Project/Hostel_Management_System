@@ -1,9 +1,23 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 
+from .validators import sanitize_text, validate_no_script_tags
 
-class BootstrapFormMixin:
-    """Gives every field a consistent Bootstrap class (HMS-NF-004: standardized form styling)."""
+
+class SanitizedFormMixin:
+    """Sanitizes text fields automatically across forms and blocks script injection (HMS-SR-004)."""
+
+    def clean(self):
+        cleaned_data = super().clean()
+        for field_name, value in list(cleaned_data.items()):
+            if isinstance(value, str):
+                validate_no_script_tags(value)
+                cleaned_data[field_name] = sanitize_text(value)
+        return cleaned_data
+
+
+class BootstrapFormMixin(SanitizedFormMixin):
+    """Gives every field a consistent Bootstrap class and sanitizes text inputs (HMS-NF-004, HMS-SR-004)."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
