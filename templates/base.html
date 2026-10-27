@@ -17,8 +17,10 @@
         <a class="nav-link" href="{% url 'dashboard:summary' %}">Dashboard</a>
         <a class="nav-link" href="{% url 'hostels:list' %}">Hostels</a>
         <a class="nav-link" href="{% url 'rooms:list' %}">Rooms</a>
+        <a class="nav-link" href="{% url 'students:list' %}">Students</a>
       {% else %}
         <span class="navbar-text text-uppercase small me-3">Student</span>
+        <a class="nav-link" href="{% url 'students:my_profile' %}">My profile</a>
         <a class="nav-link" href="{% url 'rooms:list' %}">Room availability</a>
       {% endif %}
     </div>
