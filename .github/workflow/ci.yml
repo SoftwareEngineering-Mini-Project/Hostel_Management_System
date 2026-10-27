@@ -38,5 +38,5 @@ jobs:
         env:
           DJANGO_DEBUG: "True"
         run: |
-          coverage run --source=hostels,rooms,allocations,dashboard,accounts manage.py test -v 2
+          coverage run --source=hostels,rooms,allocations,dashboard,accounts,students manage.py test -v 2
           coverage report -m --fail-under=80
