@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "hostels",
     "rooms",
     "dashboard",
+    "students",
 ]
 
 MIDDLEWARE = [
