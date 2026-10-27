@@ -442,6 +442,16 @@ class InputSanitizationAndValidationTests(TestCase):
         self.assertFalse(xss_form.is_valid())
         self.assertIn("forbidden script or HTML tags", str(xss_form.errors))
 
+    def test_TC_SEC_04_ST_SEC_04_500_character_fuzzing_boundary(self):
+        """500-character string inputs are handled safely without 500 errors (ST_SEC_04)."""
+        long_string = "A" * 500
+        cleaned = sanitize_text(long_string)
+        self.assertEqual(len(cleaned), 500)
+
+        # Ensure no crash when validated
+        validate_no_script_tags(long_string)
+        validate_no_sql_injection(long_string)
+
     def test_TC_SEC_04_ST_SEC_04_csrf_token_required_on_post(self):
         """Submitting a form POST without CSRF token returns HTTP 403 Forbidden (ST_SEC_04)."""
         csrf_client = Client(enforce_csrf_checks=True)
