@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}{{ student.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">{{ student.name }}</h1>
+  <div>
+    <a class="btn btn-outline-primary btn-sm" href="{% url 'students:update' student.pk %}">Edit student</a>
+    <a class="btn btn-link btn-sm" href="{% url 'students:list' %}">Back to students</a>
+  </div>
+</div>
+{% include 'students/_student_fields.html' %}
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">My profile</h1>
+{% if student %}
+  {% include 'students/_student_fields.html' %}
+{% else %}
+  <div class="alert alert-warning">No student record is linked to your account. Please contact the hostel office.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Students</h1>
+  <a class="btn btn-primary" href="{% url 'students:create' %}">Register student</a>
+</div>
+<form method="get" class="d-flex gap-2 mb-3" role="search">
+  <input class="form-control" type="search" name="q" value="{{ query }}" placeholder="Search by SRN or name" aria-label="Search by SRN or name">
+  <button class="btn btn-outline-secondary" type="submit">Search</button>
+  {% if query %}<a class="btn btn-link" href="{% url 'students:list' %}">Clear</a>{% endif %}
+</form>
+<table class="table table-striped bg-white">
+  <thead><tr><th>SRN</th><th>Name</th><th>Department</th><th>Year</th><th></th></tr></thead>
+  <tbody>
+  {% for student in page %}
+    <tr>
+      <td>{{ student.srn }}</td>
+      <td>{{ student.name }}</td>
+      <td>{{ student.department }}</td>
+      <td>{{ student.year_of_study }}</td>
+      <td><a href="{% url 'students:detail' student.pk %}">View</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">{% if query %}No students match "{{ query }}".{% else %}No students yet.{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if page.has_other_pages %}
+<nav aria-label="Student pages">
+  <ul class="pagination">
+    {% if page.has_previous %}<li class="page-item"><a class="page-link" href="?q={{ query|urlencode }}&page={{ page.previous_page_number }}">Previous</a></li>{% endif %}
+    <li class="page-item disabled"><span class="page-link">Page {{ page.number }} of {{ page.paginator.num_pages }}</span></li>
+    {% if page.has_next %}<li class="page-item"><a class="page-link" href="?q={{ query|urlencode }}&page={{ page.next_page_number }}">Next</a></li>{% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}
