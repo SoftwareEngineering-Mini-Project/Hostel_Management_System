@@ -165,3 +165,44 @@ class RoomViewTests(RoomTestBase):
     def test_TC_ROOM_03_anonymous_user_cannot_see_rooms(self):
         response = self.client.get(reverse("rooms:list"))
         self.assertEqual(response.status_code, 302)
+
+    def test_TC_ROOM_03_list_filters_by_invalid_floor_gracefully(self):
+        """Non-numeric floor filter value is ignored gracefully (HMS-F-009)."""
+        self.make_room(number="101", floor=1)
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("rooms:list"), {"floor": "invalid-floor"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["rooms"]), 1)
+
+    def test_TC_ROOM_01_string_representation(self):
+        """Room __str__ returns formatted hostel-code and room-number."""
+        room = self.make_room(number="101")
+        self.assertEqual(str(room), "BLA-101")
+
+    def test_TC_ROOM_02_active_allocation_count_fallback(self):
+        """active_allocation_count queries directly when active_count annotation is absent."""
+        room = self.make_room(capacity=2)
+        self.allocate(room)
+        # Fetch instance without with_active_counts()
+        raw_room = Room.objects.filter(pk=room.pk).first()
+        self.assertFalse(hasattr(raw_room, "active_count"))
+        self.assertEqual(raw_room.active_allocation_count(), 1)
+
+    def test_TC_ROOM_01_admin_views_room_update_form(self):
+        """Admin GET request to room edit loads form populated with instance data."""
+        room = self.make_room(number="303", capacity=2)
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("rooms:update", args=[room.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Edit room 303")
+
+    def test_TC_ROOM_01_admin_update_invalid_data_shows_errors(self):
+        """Submitting invalid data to room update re-renders with validation error."""
+        room = self.make_room(number="304", capacity=2)
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("rooms:update", args=[room.pk]),
+            {"hostel": self.hostel.pk, "room_number": "304", "capacity": 0, "floor": 1},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Capacity must be at least 1.")

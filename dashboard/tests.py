@@ -49,6 +49,23 @@ class DashboardTests(TestCase):
         self.client.force_login(self.student)
         self.assertEqual(self.client.get(reverse("dashboard:summary")).status_code, 403)
 
+    def test_TC_DASH_01_summary_handles_empty_database_cleanly(self):
+        """Dashboard build_summary gracefully handles empty tables without error (HMS-F-019)."""
+        Allocation.objects.all().delete()
+        Room.objects.all().delete()
+        Hostel.objects.all().delete()
+        User.objects.filter(is_superuser=False).delete()
+
+        from dashboard.views import build_summary
+
+        stats = build_summary()
+        self.assertEqual(stats["students"], 0)
+        self.assertEqual(stats["hostels"], 0)
+        self.assertEqual(stats["rooms"], 0)
+        self.assertEqual(stats["total_capacity"], 0)
+        self.assertEqual(stats["occupancy"], 0)
+        self.assertEqual(stats["available"], 0)
+
 
 class PerformanceTests(TestCase):
     """HMS-NF-001 / TC-PERF-01: query count of the room list must not grow with the number of rooms."""

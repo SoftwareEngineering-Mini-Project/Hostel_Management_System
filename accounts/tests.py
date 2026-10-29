@@ -81,6 +81,12 @@ class AuthenticationModuleTests(TestCase):
         user = authenticate_user(None, "doesnotexist", "TestPassword@123")
         self.assertIsNone(user)
 
+    def test_TC_AUTH_01_empty_credentials_rejected(self):
+        """Missing or empty username or password returns None immediately (HMS-F-001)."""
+        self.assertIsNone(authenticate_user(None, "", "password"))
+        self.assertIsNone(authenticate_user(None, "user", ""))
+        self.assertIsNone(authenticate_user(None, "", ""))
+
     def test_TC_AUTH_01_inactive_user_cannot_authenticate(self):
         """Inactive user account is rejected even with valid password (HMS-F-001)."""
         user = authenticate_user(None, "inactive1", "TestPassword@123")
@@ -129,6 +135,10 @@ class AuthenticationModuleTests(TestCase):
         for url in malicious_urls:
             target = get_redirect_url_for_user(self.student_user, next_url=url)
             self.assertEqual(target, "/rooms/")
+
+        # Safe internal next URL is accepted
+        safe_target = get_redirect_url_for_user(self.admin_user, next_url="/hostels/")
+        self.assertEqual(safe_target, "/hostels/")
 
     def test_TC_AUTH_01_authenticated_user_accessing_login_redirected(self):
         """Authenticated users visiting /accounts/login/ are redirected to their landing page."""
@@ -460,6 +470,33 @@ class InputSanitizationAndValidationTests(TestCase):
             {"username": "admin1", "password": "password"},
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_TC_SEC_04_non_string_and_empty_inputs_handled_safely(self):
+        """Validators safely handle non-string types and empty input boundaries."""
+        self.assertIsNone(sanitize_text(None))
+        self.assertEqual(sanitize_text(12345), 12345)
+
+        # Non-string validation safely passes without raising
+        self.assertIsNone(validate_no_script_tags(None))
+        self.assertIsNone(validate_no_script_tags(123))
+        self.assertIsNone(validate_no_sql_injection(None))
+        self.assertIsNone(validate_no_sql_injection(123))
+
+        # Empty values pass optional phone and code validators
+        self.assertIsNone(validate_phone_number(None))
+        self.assertIsNone(validate_phone_number(""))
+        self.assertIsNone(validate_alphanumeric_code(None))
+        self.assertIsNone(validate_alphanumeric_code(""))
+
+    def test_TC_UX_01_bootstrap_form_mixin_checkbox_styling(self):
+        """BootstrapFormMixin assigns form-check-input to CheckboxInput widgets."""
+        class CheckboxForm(BootstrapFormMixin, forms.Form):
+            terms = forms.BooleanField(required=False)
+            choice = forms.ChoiceField(choices=[("1", "One")], widget=forms.Select)
+
+        form = CheckboxForm()
+        self.assertEqual(form.fields["terms"].widget.attrs.get("class"), "form-check-input")
+        self.assertEqual(form.fields["choice"].widget.attrs.get("class"), "form-select")
 
 
 class ModularArchitectureMaintenanceTests(TestCase):
