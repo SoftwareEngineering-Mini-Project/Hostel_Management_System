@@ -71,3 +71,31 @@ class HostelModuleTests(TestCase):
         response = self.client.get(reverse("hostels:list"))
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("login"), response["Location"])
+
+    def test_TC_HOSTEL_01_admin_views_hostel_list(self):
+        """Admin can view hostel list page and view empty state."""
+        self.client.force_login(self.admin)
+        # Empty list
+        response = self.client.get(reverse("hostels:list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No hostels yet.")
+
+        # With hostel
+        Hostel.objects.create(name="Block C", code="BLC", total_capacity=25)
+        response = self.client.get(reverse("hostels:list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Block C")
+        self.assertContains(response, "BLC")
+
+    def test_TC_HOSTEL_01_admin_views_hostel_update_form(self):
+        """Admin GET request to edit hostel loads form with instance data."""
+        hostel = Hostel.objects.create(name="Block D", code="BLD", total_capacity=30)
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("hostels:update", args=[hostel.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Edit Block D")
+
+    def test_TC_HOSTEL_01_string_representation(self):
+        """Hostel model __str__ returns expected name (code) format."""
+        hostel = Hostel.objects.create(name="Block E", code="BLE", total_capacity=15)
+        self.assertEqual(str(hostel), "Block E (BLE)")
