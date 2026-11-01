@@ -237,3 +237,24 @@ class StudentViewTests(TestCase):
         response = self.client.get(reverse("students:my_profile"))
         self.assertContains(response, "My profile")
         self.assertNotContains(response, 'href="%s"' % reverse("students:list"))
+
+    def test_TC_STU_01_student_string_representation(self):
+        """Student model __str__ returns expected name (SRN) format."""
+        self.assertEqual(str(self.riya), "Riya Rao (PES1UG24AM101)")
+
+    def test_TC_STU_01_password_complexity_failure_in_clean(self):
+        """Password >=8 chars but failing complexity validator adds form error (HMS-SR-003)."""
+        payload = registration_payload(password1="12345678", password2="12345678")
+        form = StudentRegistrationForm(payload)
+        self.assertFalse(form.is_valid())
+        self.assertIn("password1", form.errors)
+
+    def test_TC_STU_02_admin_update_invalid_data_shows_errors(self):
+        """Admin updating student with invalid phone displays form validation errors."""
+        self.client.force_login(self.admin)
+        url = reverse("students:update", args=[self.riya.pk])
+        response = self.client.post(
+            url, student_details(name="Riya Rao", phone="123")
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Phone must be 10 digits.")

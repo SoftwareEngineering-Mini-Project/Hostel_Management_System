@@ -12,7 +12,7 @@ def home(request):
 urlpatterns = [
     path("", home, name="home"),
     path("admin/", admin.site.urls),
-    path("accounts/", include("django.contrib.auth.urls")),
+    path("accounts/", include("accounts.urls")),
     path("hostels/", include("hostels.urls")),
     path("rooms/", include("rooms.urls")),
     path("dashboard/", include("dashboard.urls")),
