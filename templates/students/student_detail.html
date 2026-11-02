@@ -4,6 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h4 mb-0">{{ student.name }}</h1>
   <div>
+    {% if allocation %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'allocations:detail' allocation.pk %}">View allocation</a>{% endif %}
     <a class="btn btn-outline-primary btn-sm" href="{% url 'students:update' student.pk %}">Edit student</a>
     <a class="btn btn-link btn-sm" href="{% url 'students:list' %}">Back to students</a>
   </div>
