@@ -7,5 +7,5 @@
   <dt>Department</dt><dd>{{ student.department }}</dd>
   <dt>Year of study</dt><dd>{{ student.year_of_study }}</dd>
   <dt>Room</dt>
-  <dd class="mb-0">{% if allocation %}{{ allocation.room.hostel.name }}, room {{ allocation.room.room_number }}{% else %}No room allocated.{% endif %}</dd>
+  <dd class="mb-0">{% if allocation %}{{ allocation.room.hostel.name }}, room {{ allocation.room.room_number }}{% if allocation.checked_in_on %} (checked in {{ allocation.checked_in_on|date:"d M Y" }}){% else %} (not checked in){% endif %}{% else %}No room allocated.{% endif %}</dd>
 </dl>

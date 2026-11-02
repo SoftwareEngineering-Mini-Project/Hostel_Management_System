@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Check out{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Check out</h1>
+<div class="card card-body bg-white">
+  <p>Check out {{ allocation.student.username }} from {{ allocation.room.hostel.name }}, room {{ allocation.room.room_number }}?
+     The allocation will be marked Completed and the bed will be freed.</p>
+  <form method="post" class="d-flex gap-2">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Confirm check-out</button>
+    <a class="btn btn-link" href="{% url 'allocations:detail' allocation.pk %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}
