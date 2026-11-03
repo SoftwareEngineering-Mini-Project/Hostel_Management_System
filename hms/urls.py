@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import include, path
 
+from rooms.api import room_availability
+
 
 def home(request):
     if not request.user.is_authenticated:
@@ -14,6 +16,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("hostels/", include("hostels.urls")),
+    path("api/rooms/<int:room_id>/availability/", room_availability, name="api_room_availability"),
     path("rooms/", include("rooms.urls")),
     path("allocations/", include("allocations.urls")),
     path("dashboard/", include("dashboard.urls")),

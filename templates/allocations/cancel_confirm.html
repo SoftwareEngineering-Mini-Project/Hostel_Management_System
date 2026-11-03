@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Cancel allocation{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Cancel allocation</h1>
+<div class="card card-body bg-white">
+  <p>Cancel the allocation of {% firstof allocation.student.student.name allocation.student.username %} in {{ allocation.room.hostel.name }}, room {{ allocation.room.room_number }}?
+     The allocation will be marked Cancelled and the bed will be freed. The record is kept in the history.</p>
+  <form method="post" class="d-flex gap-2">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Confirm cancellation</button>
+    <a class="btn btn-link" href="{% url 'allocations:detail' allocation.pk %}">Back</a>
+  </form>
+</div>
+{% endblock %}

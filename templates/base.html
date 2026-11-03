@@ -18,6 +18,7 @@
         <a class="nav-link" href="{% url 'hostels:list' %}">Hostels</a>
         <a class="nav-link" href="{% url 'rooms:list' %}">Rooms</a>
         <a class="nav-link" href="{% url 'students:list' %}">Students</a>
+        <a class="nav-link" href="{% url 'allocations:list' %}">Allocations</a>
       {% else %}
         <span class="navbar-text text-uppercase small me-3">Student</span>
         <a class="nav-link" href="{% url 'students:my_profile' %}">My profile</a>

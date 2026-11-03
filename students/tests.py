@@ -186,7 +186,7 @@ class StudentViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Riya Rao")
         self.assertNotContains(response, "Rahul Shah")
-        self.assertContains(response, "No room allocated.")
+        self.assertContains(response, "No room allocated yet")
 
     def test_TC_STU_03_profile_shows_active_room(self):
         hostel = Hostel.objects.create(name="Block A", code="BLA", total_capacity=2)

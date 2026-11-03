@@ -5,8 +5,9 @@ from django.db import models
 class Allocation(models.Model):
     """A student's use of a bed in a room.
 
-    Only ACTIVE allocations occupy a bed (SAD glossary). Check-in / check-out (HMS-F-015, F-016) live in
-    allocations/services.py; allocate_room, modify, cancel (HMS-F-010..F-014) are not built here yet.
+    Only ACTIVE allocations occupy a bed (SAD glossary). Every change (allocate, modify, cancel, check-in,
+    check-out; HMS-F-010..F-016) goes through allocations/services.py so an AllocationHistory row is always written.
+    Allocations are never deleted (ADR-06): cancelling or completing only changes the status.
     """
 
     ACTIVE = "ACTIVE"
@@ -60,6 +61,13 @@ class AllocationHistory(models.Model):
     performed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+"
     )
+    # HMS-F-018: which room(s) the change involved. CREATED sets new_room, MODIFIED sets both, CANCELLED sets old_room.
+    old_room = models.ForeignKey(
+        "rooms.Room", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    new_room = models.ForeignKey(
+        "rooms.Room", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -68,3 +76,10 @@ class AllocationHistory(models.Model):
 
     def __str__(self):
         return f"{self.allocation_id} {self.action} by {self.performed_by}"
+
+    def room_summary(self):
+        """Text for the history tables: 'old -> new' for a move, otherwise the room involved."""
+        if self.old_room and self.new_room:
+            return f"{self.old_room} \u2192 {self.new_room}"
+        room = self.new_room or self.old_room or self.allocation.room
+        return str(room)

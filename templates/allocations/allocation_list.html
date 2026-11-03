@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Allocations{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Allocations</h1>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'allocations:history' %}">History</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'allocations:create' %}">Allocate room</a>
+  </div>
+</div>
+<table class="table table-sm bg-white">
+  <thead><tr><th>Student</th><th>Room</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for allocation in page %}
+    <tr>
+      <td>{% firstof allocation.student.student.name allocation.student.username %}</td>
+      <td>{{ allocation.room.hostel.name }}, room {{ allocation.room.room_number }}</td>
+      <td>{{ allocation.get_status_display }}</td>
+      <td><a href="{% url 'allocations:detail' allocation.pk %}">View</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4" class="text-muted">No allocations yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if page.has_other_pages %}
+<nav class="d-flex gap-2">
+  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">Previous</a>{% endif %}
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

@@ -24,14 +24,30 @@
     <button class="btn btn-outline-danger" type="button" disabled>Check out</button>
   {% endif %}
 </div>
+<div class="card card-body bg-white mb-4">
+  <h2 class="h6">Change room</h2>
+  <form method="post" action="{% url 'allocations:modify' allocation.pk %}" class="d-flex gap-2 mb-2">
+    {% csrf_token %}
+    <select name="new_room" class="form-select" aria-label="New room" {% if allocation.status != 'ACTIVE' %}disabled{% endif %}>
+      <option value="">Select a room with a free bed</option>
+      {% for room in free_rooms %}<option value="{{ room.pk }}">{{ room.hostel.name }}, room {{ room.room_number }} ({{ room.available_capacity }} free)</option>{% endfor %}
+    </select>
+    <button class="btn btn-primary" type="submit" {% if allocation.status != 'ACTIVE' %}disabled{% endif %}>Modify</button>
+  </form>
+  {% if allocation.status == 'ACTIVE' %}
+    <div><a class="btn btn-outline-danger btn-sm" href="{% url 'allocations:cancel' allocation.pk %}">Cancel allocation</a></div>
+  {% else %}
+    <div><button class="btn btn-outline-danger btn-sm" type="button" disabled>Cancel allocation</button></div>
+  {% endif %}
+</div>
 <h2 class="h5">History</h2>
 <table class="table table-sm bg-white">
-  <thead><tr><th>Action</th><th>By</th><th>When</th></tr></thead>
+  <thead><tr><th>Action</th><th>Room(s)</th><th>By</th><th>When</th></tr></thead>
   <tbody>
   {% for entry in history %}
-    <tr><td>{{ entry.get_action_display }}</td><td>{{ entry.performed_by|default:"-" }}</td><td>{{ entry.timestamp }}</td></tr>
+    <tr><td>{{ entry.get_action_display }}</td><td>{{ entry.room_summary }}</td><td>{{ entry.performed_by|default:"-" }}</td><td>{{ entry.timestamp }}</td></tr>
   {% empty %}
-    <tr><td colspan="3" class="text-muted">No changes recorded yet.</td></tr>
+    <tr><td colspan="4" class="text-muted">No changes recorded yet.</td></tr>
   {% endfor %}
   </tbody>
 </table>
