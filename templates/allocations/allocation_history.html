@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Allocation history{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Allocation history</h1>
+  <a class="btn btn-link btn-sm" href="{% url 'allocations:list' %}">Back to allocations</a>
+</div>
+<table class="table table-sm bg-white">
+  <thead><tr><th>Action</th><th>Student</th><th>Room(s)</th><th>Performed by</th><th>When</th></tr></thead>
+  <tbody>
+  {% for entry in page %}
+    <tr>
+      <td>{{ entry.get_action_display }}</td>
+      <td><a href="{% url 'allocations:detail' entry.allocation_id %}">{% firstof entry.allocation.student.student.name entry.allocation.student.username %}</a></td>
+      <td>{{ entry.room_summary }}</td>
+      <td>{{ entry.performed_by|default:"-" }}</td>
+      <td>{{ entry.timestamp }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5" class="text-muted">No history found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if page.has_other_pages %}
+<nav class="d-flex gap-2">
+  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}{% if student_id %}&student={{ student_id|urlencode }}{% endif %}{% if room_id %}&room={{ room_id|urlencode }}{% endif %}">Previous</a>{% endif %}
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}{% if student_id %}&student={{ student_id|urlencode }}{% endif %}{% if room_id %}&room={{ room_id|urlencode }}{% endif %}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}
