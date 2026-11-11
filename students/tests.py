@@ -258,3 +258,62 @@ class StudentViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Phone must be 10 digits.")
+
+
+class StudentHomeCardTests(TestCase):
+    """HMS-F-012 / HMS-SR-006: the student home page shows the student's own room card and details."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user("admin1", password=PASSWORD, is_staff=True)
+        self.riya = make_student(srn="PES1UG24AM101", name="Riya Rao")
+        self.rahul = make_student(srn="PES1UG24AM102", name="Rahul Shah", email="rahul@pes.edu")
+        hostel = Hostel.objects.create(name="Block A", code="BLA", total_capacity=4)
+        self.room = Room.objects.create(hostel=hostel, room_number="A-101", capacity=2, floor=1)
+
+    def home(self, student):
+        self.client.force_login(student.user)
+        return self.client.get(reverse("students:my_profile"))
+
+    def test_TC_ALLOC_03_IT_STAT_01_card_shows_room_details_and_awaiting_check_in(self):
+        Allocation.objects.create(student=self.riya.user, room=self.room)
+        response = self.home(self.riya)
+        self.assertContains(response, "Welcome, Riya Rao")
+        self.assertContains(response, "Block A, room A-101")
+        self.assertContains(response, "BLA")
+        self.assertContains(response, "Awaiting check-in")
+        self.assertContains(response, "Active")
+        self.assertContains(response, "(not checked in)")
+
+    def test_TC_ALLOC_03_card_shows_checked_in_badge_and_date(self):
+        allocation = Allocation.objects.create(student=self.riya.user, room=self.room)
+        allocation.checked_in_on = allocation.created_at
+        allocation.save()
+        response = self.home(self.riya)
+        self.assertContains(response, "Checked in</span>")
+        self.assertContains(response, f"(checked in {allocation.checked_in_on:%d %b %Y})")
+        self.assertNotContains(response, "Awaiting check-in")
+
+    def test_TC_ALLOC_03_no_allocation_links_to_room_availability(self):
+        response = self.home(self.riya)
+        self.assertContains(response, "No room allocated yet")
+        self.assertContains(response, reverse("rooms:list"))
+        self.assertNotContains(response, "Awaiting check-in")
+
+    def test_TC_SEC_06_card_never_shows_another_students_room(self):
+        """HMS-SR-006: Rahul's allocation must not appear on Riya's home page."""
+        Allocation.objects.create(student=self.rahul.user, room=self.room)
+        response = self.home(self.riya)
+        self.assertContains(response, "No room allocated yet")
+        self.assertNotContains(response, "Rahul Shah")
+        self.assertNotContains(response, "A-101")
+
+    def test_TC_ALLOC_03_finished_allocation_is_not_shown_as_current(self):
+        Allocation.objects.create(student=self.riya.user, room=self.room, status=Allocation.COMPLETED)
+        self.assertContains(self.home(self.riya), "No room allocated yet")
+
+    def test_TC_STU_03_admin_student_page_still_shows_room_line(self):
+        Allocation.objects.create(student=self.riya.user, room=self.room)
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("students:detail", args=[self.riya.pk]))
+        self.assertContains(response, "Block A, room A-101 (not checked in)")
+        self.assertNotContains(response, "Welcome,")

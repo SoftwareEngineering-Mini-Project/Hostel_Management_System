@@ -1,11 +1,20 @@
-<dl class="card card-body bg-white">
-  <dt>SRN</dt><dd>{{ student.srn }}</dd>
-  <dt>Name</dt><dd>{{ student.name }}</dd>
-  <dt>Email</dt><dd>{{ student.email }}</dd>
-  <dt>Phone</dt><dd>{{ student.phone }}</dd>
-  <dt>Gender</dt><dd>{{ student.get_gender_display }}</dd>
-  <dt>Department</dt><dd>{{ student.department }}</dd>
-  <dt>Year of study</dt><dd>{{ student.year_of_study }}</dd>
-  <dt>Room</dt>
-  <dd class="mb-0">{% if allocation %}{{ allocation.room.hostel.name }}, room {{ allocation.room.room_number }}{% if allocation.checked_in_on %} (checked in {{ allocation.checked_in_on|date:"d M Y" }}){% else %} (not checked in){% endif %}{% else %}No room allocated yet{% endif %}</dd>
-</dl>
+<div class="card h-100">
+  <div class="card-header">Personal details</div>
+  <div class="card-body">
+    <dl class="mb-0">
+      <div class="detail-row"><dt>SRN</dt><dd>{{ student.srn }}</dd></div>
+      <div class="detail-row"><dt>Name</dt><dd>{{ student.name }}</dd></div>
+      <div class="detail-row"><dt>Email</dt><dd>{{ student.email }}</dd></div>
+      <div class="detail-row"><dt>Phone</dt><dd>{{ student.phone }}</dd></div>
+      <div class="detail-row"><dt>Gender</dt><dd>{{ student.get_gender_display }}</dd></div>
+      <div class="detail-row"><dt>Department</dt><dd>{{ student.department }}</dd></div>
+      <div class="detail-row"><dt>Year of study</dt><dd>{{ student.year_of_study }}</dd></div>
+      {% if show_room %}
+        <div class="detail-row">
+          <dt>Room</dt>
+          <dd>{% if allocation %}{{ allocation.room.hostel.name }}, room {{ allocation.room.room_number }}{% if allocation.checked_in_on %} (checked in {{ allocation.checked_in_on|date:"d M Y" }}){% else %} (not checked in){% endif %}{% else %}No room allocated yet{% endif %}</dd>
+        </div>
+      {% endif %}
+    </dl>
+  </div>
+</div>

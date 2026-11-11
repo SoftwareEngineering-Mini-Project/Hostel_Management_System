@@ -9,5 +9,5 @@
     <a class="btn btn-link btn-sm" href="{% url 'students:list' %}">Back to students</a>
   </div>
 </div>
-{% include 'students/_student_fields.html' %}
+{% include 'students/_student_fields.html' with show_room=True %}
 {% endblock %}
