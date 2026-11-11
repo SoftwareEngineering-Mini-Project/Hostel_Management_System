@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Access denied{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <p class="text-muted mb-1">Error 403</p>
+    <h1 class="h3 mb-3">You don't have access to this page</h1>
+    <p class="mb-4">This page is only available to hostel administrators, or it belongs to another student.
+       If you think this is a mistake, contact the hostel office.</p>
+    <a class="btn btn-primary" href="{% url 'home' %}">Go to home page</a>
+  </div>
+</div>
+{% endblock %}
