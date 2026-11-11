@@ -507,3 +507,68 @@ class ModularArchitectureMaintenanceTests(TestCase):
         expected_apps = ["accounts", "hostels", "rooms", "allocations", "dashboard"]
         for app in expected_apps:
             self.assertIn(app, settings.INSTALLED_APPS)
+
+
+class EndToEndFuzzingTests(TestCase):
+    """HMS-SR-004 / TC-SEC-04 / IT_SEC_01: hostile strings sent through real search and forms."""
+
+    PAYLOADS = ["' OR 1=1 --", "<script>alert(1)</script>", "A" * 500]
+
+    def setUp(self):
+        self.admin = User.objects.create_user("admin1", password="admin-pass-123", is_staff=True)
+        Hostel.objects.create(name="Block A", code="BLA", total_capacity=10)
+        self.client.force_login(self.admin)
+
+    def test_TC_SEC_04_IT_SEC_01_search_returns_no_extra_records_and_no_error(self):
+        for payload in self.PAYLOADS:
+            response = self.client.get(reverse("students:list"), {"q": payload})
+            self.assertEqual(response.status_code, 200, payload)
+            self.assertEqual(len(response.context["page"].object_list), 0, payload)
+            self.assertNotContains(response, "<script>alert(1)</script>")
+
+    def test_TC_SEC_04_IT_SEC_01_hostile_form_input_is_rejected_or_stored_as_text(self):
+        for payload in self.PAYLOADS:
+            response = self.client.post(
+                reverse("hostels:create"),
+                {"name": payload, "code": "X1", "total_capacity": 5, "address": payload, "notes": payload},
+            )
+            self.assertIn(response.status_code, (200, 302), payload)
+            self.assertNotContains(response, "<script>alert(1)</script>", status_code=response.status_code)
+        # Nothing beyond the one seeded hostel and at most one accepted hostile record.
+        self.assertLessEqual(Hostel.objects.count(), 2)
+        for hostel in Hostel.objects.all():
+            self.assertNotIn("<script>", hostel.name)
+
+
+class ErrorPageTests(TestCase):
+    """SAD 3.4 / TC-SEC-02 / IT_SEC_02: custom 403, 404 and 500 pages with no stack trace."""
+
+    def setUp(self):
+        self.student = User.objects.create_user("stu1", password="student-pass-123")
+
+    def test_TC_SEC_02_IT_SEC_02_student_on_admin_page_gets_custom_403(self):
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("students:list"))
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "You don't have access to this page", status_code=403)
+        self.assertNotContains(response, "Traceback", status_code=403)
+
+    def test_TC_SEC_02_IT_SEC_02_unknown_url_gets_custom_404(self):
+        self.client.force_login(self.student)
+        response = self.client.get("/no-such-page/")
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "Page not found", status_code=404)
+        self.assertNotContains(response, "Traceback", status_code=404)
+
+    def test_TC_SEC_02_IT_SEC_02_unknown_record_gets_custom_404(self):
+        self.client.force_login(User.objects.create_user("admin1", password="x", is_staff=True))
+        response = self.client.get(reverse("rooms:detail", args=[9999]))
+        self.assertContains(response, "Page not found", status_code=404)
+
+    def test_TC_SEC_02_IT_SEC_02_server_error_page_has_no_stack_trace(self):
+        from django.views.defaults import server_error
+
+        response = server_error(RequestFactory().get("/"))
+        self.assertEqual(response.status_code, 500)
+        self.assertIn(b"Something went wrong", response.content)
+        self.assertNotIn(b"Traceback", response.content)

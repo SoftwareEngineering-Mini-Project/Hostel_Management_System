@@ -206,3 +206,84 @@ class RoomViewTests(RoomTestBase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Capacity must be at least 1.")
+
+
+class RoomDesignedCaseTests(TestCase):
+    """Test Plan Appendix A, UC-03 and UC-04, with the designed test data (Block C / Block D, room C-101)."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user("admin1", password="admin-pass-123", is_staff=True)
+        self.stu1 = User.objects.create_user("stu1", password="student-pass-123")
+        self.block_c = Hostel.objects.create(name="Block C", code="BLC", total_capacity=40)
+        self.block_d = Hostel.objects.create(name="Block D", code="BLD", total_capacity=40)
+
+    def room_form(self, **overrides):
+        from .forms import RoomForm
+
+        data = {"hostel": self.block_c.pk, "room_number": "C-101", "floor": 1, "capacity": 3}
+        data.update(overrides)
+        return RoomForm(data)
+
+    def test_TC_ROOM_01_UT_ROOM_01_valid_room_is_saved(self):
+        """HMS-F-007: a valid RoomForm saves a room linked to Block C."""
+        form = self.room_form()
+        self.assertTrue(form.is_valid(), form.errors)
+        room = form.save()
+        self.assertEqual(room.hostel, self.block_c)
+        self.assertEqual((room.room_number, room.floor, room.capacity), ("C-101", 1, 3))
+
+    def test_TC_ROOM_01_UT_ROOM_02_capacity_boundary_values(self):
+        """Capacity 0 and -1 are invalid; 1 is the smallest valid value."""
+        zero = self.room_form(capacity=0)
+        self.assertFalse(zero.is_valid())
+        self.assertIn("Capacity must be at least 1.", zero.errors["capacity"])
+        self.assertFalse(self.room_form(capacity=-1).is_valid())
+        self.assertTrue(self.room_form(capacity=1).is_valid())
+
+    def test_TC_ROOM_01_UT_ROOM_03_room_number_unique_within_hostel(self):
+        Room.objects.create(hostel=self.block_c, room_number="C-101", capacity=3)
+        same_hostel = self.room_form()
+        self.assertFalse(same_hostel.is_valid())
+        self.assertIn("This room number already exists in this hostel.", str(same_hostel.errors))
+        self.assertTrue(self.room_form(hostel=self.block_d.pk).is_valid())
+
+    def test_TC_ROOM_02_UT_AVL_02_active_allocations_reduce_availability(self):
+        """HMS-F-008: capacity 3 with 2 ACTIVE allocations leaves 1 bed."""
+        room = Room.objects.create(hostel=self.block_c, room_number="C-101", capacity=3)
+        for name in ("a1", "a2"):
+            Allocation.objects.create(student=User.objects.create_user(name), room=room)
+        self.assertEqual(room.available_capacity(), 1)
+
+    def test_TC_ROOM_02_UT_AVL_03_cancelled_and_completed_are_not_counted(self):
+        """HMS-F-008 / NF-006: capacity 3 with 1 ACTIVE, 1 CANCELLED, 1 COMPLETED leaves 2 beds."""
+        room = Room.objects.create(hostel=self.block_c, room_number="C-101", capacity=3)
+        for name, status in (("b1", Allocation.ACTIVE), ("b2", Allocation.CANCELLED), ("b3", Allocation.COMPLETED)):
+            Allocation.objects.create(student=User.objects.create_user(name), room=room, status=status)
+        self.assertEqual(room.available_capacity(), 2)
+
+    def test_TC_ROOM_03_IT_ROOM_02_room_details_visible_to_admin_and_student(self):
+        """HMS-F-009: hostel, number, capacity, occupied and available are shown to both roles."""
+        room = Room.objects.create(hostel=self.block_c, room_number="C-101", capacity=3)
+        Allocation.objects.create(student=self.stu1, room=room)
+        for user in (self.admin, self.stu1):
+            self.client.force_login(user)
+            response = self.client.get(reverse("rooms:detail", args=[room.pk]))
+            self.assertEqual(response.status_code, 200)
+            for text in ("Block C", "C-101", "Capacity", "Available beds", "Partially Occupied"):
+                self.assertContains(response, text)
+            self.assertEqual(response.context["room"].available_capacity(), 2)
+
+    def test_TC_ROOM_01_TC_ROOM_03_ST_ROOM_01_admin_sets_up_hostel_with_rooms(self):
+        """Admin adds Block E and rooms E-1, E-2, E-3 (capacity 1, 2, 3) through the pages, then opens the list."""
+        self.client.force_login(self.admin)
+        self.client.post(reverse("hostels:create"), {"name": "Block E", "code": "BLE", "total_capacity": 6})
+        block_e = Hostel.objects.get(code="BLE")
+        for number, capacity in (("E-1", 1), ("E-2", 2), ("E-3", 3)):
+            response = self.client.post(
+                reverse("rooms:create"),
+                {"hostel": block_e.pk, "room_number": number, "capacity": capacity, "floor": 0},
+            )
+            self.assertEqual(response.status_code, 302)
+        response = self.client.get(reverse("rooms:list"), {"hostel": block_e.pk})
+        listed = {r.room_number: (r.capacity, r.available_capacity()) for r in response.context["rooms"]}
+        self.assertEqual(listed, {"E-1": (1, 1), "E-2": (2, 2), "E-3": (3, 3)})
