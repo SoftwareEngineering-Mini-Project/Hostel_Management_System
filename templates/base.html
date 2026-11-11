@@ -5,40 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Hostel Management System{% endblock %}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    .navbar .nav-link.active { color: #fff; font-weight: 500; }
+    .card-header { background: #fff; font-weight: 600; }
+    .detail-row { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--bs-border-color); }
+    .detail-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .detail-row:first-child { padding-top: 0; }
+    .detail-row dt { font-weight: 400; color: var(--bs-secondary-color); }
+    .detail-row dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+  </style>
 </head>
 <body class="bg-light">
+{% with ns=request.resolver_match.namespace url_name=request.resolver_match.url_name %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container">
     <a class="navbar-brand" href="{% url 'home' %}">Hostel Management</a>
     {% if user.is_authenticated %}
-    <div class="navbar-nav me-auto">
-      {% if user.is_staff %}
-        <span class="navbar-text text-uppercase small me-3">Administrator</span>
-        <a class="nav-link" href="{% url 'dashboard:summary' %}">Dashboard</a>
-        <a class="nav-link" href="{% url 'hostels:list' %}">Hostels</a>
-        <a class="nav-link" href="{% url 'rooms:list' %}">Rooms</a>
-        <a class="nav-link" href="{% url 'students:list' %}">Students</a>
-        <a class="nav-link" href="{% url 'allocations:list' %}">Allocations</a>
-      {% else %}
-        <span class="navbar-text text-uppercase small me-3">Student</span>
-        <a class="nav-link" href="{% url 'students:my_profile' %}">My profile</a>
-        <a class="nav-link" href="{% url 'rooms:list' %}">Room availability</a>
-      {% endif %}
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-nav"
+            aria-controls="main-nav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="main-nav">
+      <div class="navbar-nav me-auto">
+        {% if user.is_staff %}
+          <a class="nav-link{% if ns == 'dashboard' %} active{% endif %}" href="{% url 'dashboard:summary' %}">Dashboard</a>
+          <a class="nav-link{% if ns == 'hostels' %} active{% endif %}" href="{% url 'hostels:list' %}">Hostels</a>
+          <a class="nav-link{% if ns == 'rooms' %} active{% endif %}" href="{% url 'rooms:list' %}">Rooms</a>
+          <a class="nav-link{% if ns == 'students' %} active{% endif %}" href="{% url 'students:list' %}">Students</a>
+          <a class="nav-link{% if ns == 'allocations' %} active{% endif %}" href="{% url 'allocations:list' %}">Allocations</a>
+        {% else %}
+          <a class="nav-link{% if url_name == 'my_profile' %} active{% endif %}" href="{% url 'students:my_profile' %}">My profile</a>
+          <a class="nav-link{% if ns == 'rooms' %} active{% endif %}" href="{% url 'rooms:list' %}">Room availability</a>
+        {% endif %}
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span class="navbar-text small">
+          {{ user.get_username }} <span class="text-white-50">· {% if user.is_staff %}Administrator{% else %}Student{% endif %}</span>
+        </span>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="btn btn-outline-light btn-sm" type="submit">Log out</button>
+        </form>
+      </div>
     </div>
-    <form method="post" action="{% url 'logout' %}" class="d-flex">
-      {% csrf_token %}
-      <button class="btn btn-outline-light btn-sm" type="submit">Log out</button>
-    </form>
     {% else %}
     <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}">Log in</a>
     {% endif %}
   </div>
 </nav>
-<main class="container">
+{% endwith %}
+<main class="container pb-5">
   {% for message in messages %}
     <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %}">{{ message }}</div>
   {% endfor %}
   {% block content %}{% endblock %}
 </main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

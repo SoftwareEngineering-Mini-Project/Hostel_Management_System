@@ -1,10 +1,51 @@
 {% extends 'base.html' %}
 {% block title %}My profile{% endblock %}
 {% block content %}
-<h1 class="h4 mb-3">My profile</h1>
 {% if student %}
-  {% include 'students/_student_fields.html' %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Welcome, {{ student.name }}</h1>
+  <p class="text-muted mb-0">My profile · {{ student.srn }} · {{ student.department }}, year {{ student.year_of_study }}</p>
+</div>
+<div class="row g-4">
+  <div class="col-lg-5">
+    {# HMS-F-012: the student's allocation card (hostel, room, status) or "No room allocated yet". #}
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        My room
+        {% if allocation %}
+          {% if allocation.checked_in_on %}
+            <span class="badge bg-success-subtle text-success-emphasis">Checked in</span>
+          {% else %}
+            <span class="badge bg-warning-subtle text-warning-emphasis">Awaiting check-in</span>
+          {% endif %}
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if allocation %}
+          <p class="h4 mb-3">{{ allocation.room.hostel.name }}, room {{ allocation.room.room_number }}</p>
+          <dl class="mb-0">
+            <div class="detail-row"><dt>Hostel code</dt><dd>{{ allocation.room.hostel.code }}</dd></div>
+            <div class="detail-row"><dt>Floor</dt><dd>{{ allocation.room.floor }}</dd></div>
+            <div class="detail-row"><dt>Allocated on</dt><dd>{{ allocation.created_at|date:"d M Y" }}</dd></div>
+            <div class="detail-row">
+              <dt>Status</dt>
+              <dd>{{ allocation.get_status_display }} {% if allocation.checked_in_on %}(checked in {{ allocation.checked_in_on|date:"d M Y" }}){% else %}(not checked in){% endif %}</dd>
+            </div>
+          </dl>
+        {% else %}
+          <p class="h5 mb-2">No room allocated yet</p>
+          <p class="text-muted mb-3">The hostel office will allocate you a room. Meanwhile you can check which rooms have free beds.</p>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'rooms:list' %}">View room availability</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    {% include 'students/_student_fields.html' with show_room=False %}
+  </div>
+</div>
 {% else %}
-  <div class="alert alert-warning">No student record is linked to your account. Please contact the hostel office.</div>
+<h1 class="h3 mb-3">My profile</h1>
+<div class="alert alert-warning">No student record is linked to your account. Please contact the hostel office.</div>
 {% endif %}
 {% endblock %}
