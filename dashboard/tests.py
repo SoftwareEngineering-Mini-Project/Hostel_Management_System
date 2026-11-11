@@ -135,8 +135,11 @@ class UsabilityTests(TestCase):
 
 
 def seed_designed_dashboard_data():
-    """Test Plan UT_DASH_01 seed: 25 students, 12 rooms, 24 beds, 15 ACTIVE allocations (plus non-active ones)."""
-    students = User.objects.bulk_create([User(username=f"seed{i:02d}") for i in range(25)])
+    """Test Plan UT_DASH_01 seed: 25 students, 12 rooms, 24 beds, 15 ACTIVE allocations (plus non-active ones).
+
+    Creates 24 seed students; stu1 (the IT_DASH_01 login) is the 25th.
+    """
+    students = User.objects.bulk_create([User(username=f"seed{i:02d}") for i in range(24)])
     hostel = Hostel.objects.create(name="Seed Block", code="SEED", total_capacity=24)
     rooms = [Room.objects.create(hostel=hostel, room_number=f"S-{i:02d}", capacity=2) for i in range(12)]
     beds = [room for room in rooms for _ in range(2)]
@@ -155,7 +158,6 @@ class DashboardDesignedCaseTests(TestCase):
         seed_designed_dashboard_data()
         self.admin = User.objects.create_user("admin1", password="admin-pass-123", is_staff=True)
         self.stu1 = User.objects.create_user("stu1", password="student-pass-123")
-        self.EXPECTED = dict(self.EXPECTED, students=26)  # the 25 seeded students plus stu1
 
     def test_TC_DASH_01_UT_DASH_01_summary_counts_match_data(self):
         from dashboard.views import build_summary

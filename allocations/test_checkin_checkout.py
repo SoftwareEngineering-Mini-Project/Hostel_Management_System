@@ -155,8 +155,9 @@ class CheckInOutViewTests(CheckInOutTestBase):
         )
         self.assertContains(self.client.get(response.url), "Student checked out")
         self.assertEqual(self.room.available_capacity(), 1)
-        room_page = self.client.get(reverse("rooms:detail", args=[self.room.pk]))
-        self.assertEqual(room_page.context["room"].available_capacity(), 1)
+        # Step 2 of IT_CO_01: the availability endpoint reports the freed bed.
+        api = self.client.get(reverse("api_room_availability", args=[self.room.pk]))
+        self.assertEqual(api.json()["available"], 1)
 
     def test_TC_CO_01_IT_CO_03_check_out_get_shows_confirmation_only(self):
         """SAD 3.5: a confirmation step comes before check-out; GET changes nothing."""
