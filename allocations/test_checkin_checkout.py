@@ -1,7 +1,7 @@
 """SEM-43 (QA-RTM): check-in and check-out tests. Each test name carries its test case ID (STP section 11).
 
-- TC-CI-01 (UT_CI_01, UT_CI_02, ST_CICO_01) -> HMS-F-015
-- TC-CO-01 (UT_CO_01, UT_CO_02, IT_CO_01, IT_CO_02, ST_CICO_01) -> HMS-F-016
+- TC-CI-01 (UT_CI_01, UT_CI_02, UT_CI_03, IT_CI_01, ST_CICO_01) -> HMS-F-015
+- TC-CO-01 (UT_CO_01, UT_CO_02, UT_CO_03, IT_CO_01, IT_CO_02, IT_CO_03, ST_CICO_01) -> HMS-F-016
 """
 
 from django.contrib.auth import get_user_model
@@ -63,7 +63,7 @@ class CheckInServiceTests(CheckInOutTestBase):
         self.assertEqual(self.allocation.checked_in_on, first_date)
         self.assertEqual(self.history_actions(), [AllocationHistory.CHECKED_IN])
 
-    def test_TC_CI_01_check_in_on_inactive_allocation_is_rejected(self):
+    def test_TC_CI_01_UT_CI_03_check_in_on_inactive_allocation_is_rejected(self):
         for status in (Allocation.CANCELLED, Allocation.COMPLETED):
             self.allocation.status = status
             self.allocation.save()
@@ -104,7 +104,7 @@ class CheckOutServiceTests(CheckInOutTestBase):
         self.assertIsNone(self.allocation.checked_out_on)
         self.assertEqual(self.room.available_capacity(), 0)
 
-    def test_TC_CO_01_check_out_twice_is_rejected(self):
+    def test_TC_CO_01_UT_CO_03_check_out_twice_is_rejected(self):
         check_in(self.allocation, self.admin)
         check_out(self.allocation, self.admin)
         with self.assertRaisesMessage(InvalidStateError, "Allocation is not active"):
@@ -128,7 +128,7 @@ class CheckInOutViewTests(CheckInOutTestBase):
         self.allocation.refresh_from_db()
         self.assertIsNotNone(self.allocation.checked_in_on)
 
-    def test_TC_CI_01_check_in_requires_post(self):
+    def test_TC_CI_01_IT_CI_01_check_in_requires_post(self):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("allocations:checkin", args=[self.allocation.pk]))
         self.assertEqual(response.status_code, 405)
@@ -158,7 +158,7 @@ class CheckInOutViewTests(CheckInOutTestBase):
         room_page = self.client.get(reverse("rooms:detail", args=[self.room.pk]))
         self.assertEqual(room_page.context["room"].available_capacity(), 1)
 
-    def test_TC_CO_01_check_out_get_shows_confirmation_only(self):
+    def test_TC_CO_01_IT_CO_03_check_out_get_shows_confirmation_only(self):
         """SAD 3.5: a confirmation step comes before check-out; GET changes nothing."""
         check_in(self.allocation, self.admin)
         self.client.force_login(self.admin)

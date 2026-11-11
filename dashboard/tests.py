@@ -132,3 +132,99 @@ class UsabilityTests(TestCase):
         student_page = self.client.get(reverse("rooms:list")).content.decode()
         self.assertNotIn(reverse("hostels:list"), student_page)
         self.assertIn("Student", student_page)
+
+
+def seed_designed_dashboard_data():
+    """Test Plan UT_DASH_01 seed: 25 students, 12 rooms, 24 beds, 15 ACTIVE allocations (plus non-active ones)."""
+    students = User.objects.bulk_create([User(username=f"seed{i:02d}") for i in range(25)])
+    hostel = Hostel.objects.create(name="Seed Block", code="SEED", total_capacity=24)
+    rooms = [Room.objects.create(hostel=hostel, room_number=f"S-{i:02d}", capacity=2) for i in range(12)]
+    beds = [room for room in rooms for _ in range(2)]
+    for student, room in zip(students[:15], beds):
+        Allocation.objects.create(student=student, room=room, status=Allocation.ACTIVE)
+    Allocation.objects.create(student=students[15], room=rooms[-1], status=Allocation.CANCELLED)
+    Allocation.objects.create(student=students[16], room=rooms[-1], status=Allocation.COMPLETED)
+
+
+class DashboardDesignedCaseTests(TestCase):
+    """Test Plan Appendix A, UC-08 (HMS-F-019)."""
+
+    EXPECTED = {"students": 25, "rooms": 12, "total_capacity": 24, "occupancy": 15, "available": 9}
+
+    def setUp(self):
+        seed_designed_dashboard_data()
+        self.admin = User.objects.create_user("admin1", password="admin-pass-123", is_staff=True)
+        self.stu1 = User.objects.create_user("stu1", password="student-pass-123")
+        self.EXPECTED = dict(self.EXPECTED, students=26)  # the 25 seeded students plus stu1
+
+    def test_TC_DASH_01_UT_DASH_01_summary_counts_match_data(self):
+        from dashboard.views import build_summary
+
+        stats = build_summary()
+        for key, value in self.EXPECTED.items():
+            self.assertEqual(stats[key], value, key)
+
+    def test_TC_DASH_01_IT_DASH_01_dashboard_access_by_role(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("dashboard:summary"))
+        self.assertEqual(response.status_code, 200)
+        for key, value in self.EXPECTED.items():
+            self.assertEqual(response.context["stats"][key], value, key)
+        self.client.force_login(self.stu1)
+        self.assertEqual(self.client.get(reverse("dashboard:summary")).status_code, 403)
+
+    def test_TC_DASH_01_ST_DASH_01_displayed_values_match_database(self):
+        """Each number shown on the page equals a direct count from the database."""
+        self.client.force_login(self.admin)
+        html = self.client.get(reverse("dashboard:summary")).content.decode()
+        db_counts = {
+            "Total students registered": User.objects.filter(is_staff=False, is_superuser=False).count(),
+            "Total rooms": Room.objects.count(),
+            "Total capacity (beds)": sum(Room.objects.values_list("capacity", flat=True)),
+            "Current occupancy": Allocation.objects.filter(status=Allocation.ACTIVE).count(),
+        }
+        for label, count in db_counts.items():
+            self.assertIn(f'{label}</div><div class="h3">{count}</div>', html, label)
+
+
+class LoadTests(TestCase):
+    """HMS-NF-001 / TC-PERF-01 / ST_PERF_01: 90% of page requests within 3 s on 500 students and 100 rooms.
+
+    Runs in-process with the Django test client (DEBUG=False) instead of Locust; see the deviations document.
+    """
+
+    REQUESTS_PER_PAGE = 40
+
+    def setUp(self):
+        users = User.objects.bulk_create([User(username=f"load{i:03d}") for i in range(500)])
+        hostel = Hostel.objects.create(name="Load Block", code="LOAD", total_capacity=300)
+        rooms = Room.objects.bulk_create(
+            [Room(hostel=hostel, room_number=f"L-{i:03d}", capacity=3, floor=i % 5) for i in range(100)]
+        )
+        Allocation.objects.bulk_create(
+            [Allocation(student=user, room=rooms[i % 100]) for i, user in enumerate(users[:250])]
+        )
+        self.room_id = rooms[0].pk
+        self.admin = User.objects.create_user("admin1", password="admin-pass-123", is_staff=True)
+
+    def test_TC_PERF_01_ST_PERF_01_ninetieth_percentile_under_three_seconds(self):
+        import time
+
+        self.client.force_login(self.admin)
+        pages = [
+            reverse("rooms:list"),
+            reverse("api_room_availability", args=[self.room_id]),
+            reverse("allocations:create"),
+            reverse("students:list"),
+        ]
+        timings = []
+        for _ in range(self.REQUESTS_PER_PAGE):
+            for url in pages:
+                start = time.perf_counter()
+                response = self.client.get(url)
+                timings.append(time.perf_counter() - start)
+                self.assertEqual(response.status_code, 200, url)
+        timings.sort()
+        p90 = timings[int(len(timings) * 0.9) - 1]
+        print(f"\nST_PERF_01: {len(timings)} requests, p90 = {p90 * 1000:.0f} ms, max = {timings[-1] * 1000:.0f} ms")
+        self.assertLessEqual(p90, 3.0)

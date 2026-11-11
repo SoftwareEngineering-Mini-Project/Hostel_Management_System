@@ -10,6 +10,7 @@ Test case IDs correspond to Test Plan Appendix A:
 """
 
 import threading
+import time
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, OperationalError, connection
@@ -280,7 +281,9 @@ class AllocateRoomConcurrencyTests(TransactionTestCase):
                         outcomes.append("ok")
                         return
                     except OperationalError:
-                        continue  # SQLite database lock: try again once the other writer has finished
+                        # SQLite database lock: wait briefly so the other writer can commit, then try again.
+                        time.sleep(0.05)
+                        continue
                     except RoomFullError:
                         outcomes.append("full")
                         return
@@ -607,3 +610,50 @@ class AllocationAccessTests(AllocationTestBase):
             self.assertEqual(response.status_code, 302, url)
             self.assertIn(reverse("login"), response["Location"], url)
         self.assertEqual(Allocation.objects.get().status, Allocation.ACTIVE)
+
+
+class CapacityConsistencySystemTests(TestCase):
+    """HMS-NF-006 / TC-DATA-01 / ST_DATA_01: 200 random actions (seed 42) never break the capacity rules."""
+
+    def test_TC_DATA_01_ST_DATA_01_random_actions_keep_capacity_consistent(self):
+        import random
+
+        from allocations.services import check_in, check_out
+
+        rng = random.Random(42)
+        admin = User.objects.create_user("admin1", password="x", is_staff=True)
+        students = [User.objects.create_user(f"rand{i:02d}") for i in range(25)]
+        hostels = [Hostel.objects.create(name=f"Block {c}", code=f"BL{c}", total_capacity=20) for c in "XY"]
+        rooms = [
+            Room.objects.create(hostel=hostels[i % 2], room_number=f"R-{i:02d}", capacity=1 + i % 3)
+            for i in range(12)
+        ]
+        done = {"allocate": 0, "modify": 0, "cancel": 0, "check_in": 0, "check_out": 0}
+
+        for _ in range(200):
+            action = rng.choice(list(done))
+            active = list(Allocation.objects.filter(status=Allocation.ACTIVE))
+            try:
+                if action == "allocate":
+                    allocate_room(rng.choice(students), rng.choice(rooms), admin)
+                elif not active:
+                    continue
+                elif action == "modify":
+                    modify_allocation(rng.choice(active), rng.choice(rooms), admin)
+                elif action == "cancel":
+                    cancel_allocation(rng.choice(active), admin)
+                elif action == "check_in":
+                    check_in(rng.choice(active), admin)
+                else:
+                    check_out(rng.choice(active), admin)
+                done[action] += 1
+            except (RoomFullError, AlreadyAllocatedError, InvalidStateError):
+                pass  # a refused action is a correct outcome; the invariant check below still runs
+
+            for room in Room.objects.with_active_counts():
+                self.assertLessEqual(room.active_count, room.capacity, room)
+                self.assertEqual(room.available_capacity(), room.capacity - room.active_count, room)
+            for student in students:
+                self.assertLessEqual(student.allocations.filter(status=Allocation.ACTIVE).count(), 1)
+
+        self.assertTrue(all(count > 0 for count in done.values()), done)

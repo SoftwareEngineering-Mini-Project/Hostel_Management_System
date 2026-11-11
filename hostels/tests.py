@@ -99,3 +99,18 @@ class HostelModuleTests(TestCase):
         """Hostel model __str__ returns expected name (code) format."""
         hostel = Hostel.objects.create(name="Block E", code="BLE", total_capacity=15)
         self.assertEqual(str(hostel), "Block E (BLE)")
+
+
+class HostelFormUnitTests(TestCase):
+    """Test Plan Appendix A, UC-03."""
+
+    def test_TC_HOSTEL_01_UT_HOS_01_valid_hostel_is_saved(self):
+        """HMS-F-006: a valid HostelForm saves one hostel row."""
+        from .forms import HostelForm
+
+        form = HostelForm({"name": "Block C", "code": "BLC", "total_capacity": 40, "address": "", "notes": "Warden: Mr. Rao"})
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        hostel = Hostel.objects.get(code="BLC")
+        self.assertEqual(hostel.name, "Block C")
+        self.assertEqual(hostel.notes, "Warden: Mr. Rao")
