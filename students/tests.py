@@ -3,6 +3,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from allocations.models import Allocation
 from hostels.models import Hostel
@@ -289,8 +290,9 @@ class StudentHomeCardTests(TestCase):
         allocation.checked_in_on = allocation.created_at
         allocation.save()
         response = self.home(self.riya)
+        checked_in_local = timezone.localtime(allocation.checked_in_on)
         self.assertContains(response, "Checked in</span>")
-        self.assertContains(response, f"(checked in {allocation.checked_in_on:%d %b %Y})")
+        self.assertContains(response, f"(checked in {checked_in_local:%d %b %Y})")
         self.assertNotContains(response, "Awaiting check-in")
 
     def test_TC_ALLOC_03_no_allocation_links_to_room_availability(self):
